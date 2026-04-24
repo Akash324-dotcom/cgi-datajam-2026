@@ -1,0 +1,7 @@
+{
+  "name": "Nova Health Navigator",
+  "description": "An AI-powered healthcare navigation system for Nova Scotia, utilizing CTAS guidelines to triage symptoms and direct users to the most appropriate care facility, including hospitals, clinics, and pharmacies.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

@@ -1,0 +1,1 @@
+export const NOVA_SCOTIA_CENTER = [44.6453, -63.5866];

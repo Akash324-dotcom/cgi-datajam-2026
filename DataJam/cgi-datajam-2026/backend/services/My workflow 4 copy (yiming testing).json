@@ -1,0 +1,404 @@
+{
+  "name": "My workflow 4 copy (yiming testing)",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Role: You are a Board-Certified Diagnostic Physician extracting clinical data from patient input.\n\nInstructions:\n- Extract **symptoms** from the patient input. Normalize them to lowercase, clear text (e.g., \"belly hurts\" → \"abdominal pain\").\n- Suggest possible **diseases or conditions** based on the symptoms (general, do not definitively diagnose).\n- Extract patient **age** if mentioned; otherwise, set to null.\n- Extract **location** (city/state) if mentioned; otherwise, set to null.\n- Determine **status**:\n  - \"Emergency\" if any red flags are present (e.g., crushing chest pain, sudden numbness, difficulty breathing),\n  - \"In-Progress\" otherwise,\n  - \"Complete\" if enough information is provided.\n- Always return a JSON object with this structure. Do not include dialogue or extra text.\n\nJSON Format\n{\n  \"symptoms\": [],      // list of symptom strings\n  \"diseases\": [],      // list of possible conditions/diagnoses\n  \"age\": null,         // patient age if known\n  \"location\": null,    // city/state if known\n  \"gender\": female | male | default:female\n  \"status\": \"In-Progress | Emergency | Complete\"  // current intake status\n}\n\nPatient Input: \"{{ $json.chatInput }}\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "55512727-0e19-4fcd-9c9d-e9e7a2c85f85",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        208
+      ],
+      "id": "a593348c-ee6c-4c40-98eb-beaeadd0ba7f",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": ""
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        208
+      ],
+      "id": "675871d0-5240-4292-a9e7-f6c6b2aa0153",
+      "name": "Code Tool"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input string from your AI node\nconst inputString = $input.first().json.output;\n\n// Convert string to JSON object\nlet jsonData;\ntry {\n    jsonData = JSON.parse(inputString);\n    console.log(\"JSON Object:\", jsonData);\n} catch (error) {\n    console.error(\"Error parsing JSON:\", error);\n}\n\nreturn [\n    {\n        json: jsonData\n    }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        144
+      ],
+      "id": "33d6ad10-5008-4402-9d4b-891d0c87839a",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=The user said:\n\"{{ $('When chat message received').item.json.chatInput }}\"\n\nCTAS Prediction: {{ $json.predicted_ctas }}\nAdvice: {{ $json.advice }}\n\nUser location:\n{{ $json.location }}\n\nYour Role\n\nYou are a supportive AI medical triage assistant helping users understand the urgency of their symptoms. Your response should be calm, empathetic, supportive, and clear.\n\nYou are not diagnosing the user. You are guiding them based on the CTAS triage recommendation.\n\nResponse Rules\n1️⃣ Start with empathy\n\nAlways acknowledge the user's concern before giving guidance.\n\nExamples:\n\n\"I'm sorry you're experiencing these symptoms.\"\n\"I understand that this situation may feel concerning.\"\n\n2️⃣ Explain the recommendation\n\nBriefly explain the urgency level based on the CTAS prediction and the reason provided.\n\nExample:\n\n\"Based on the symptoms you described, the triage system suggests the following level of urgency.\"\n\n3️⃣ Use the user's location\n\nThe user's location is provided as:\n\n{{ $json.location }}\n\nWhen medical care is recommended (ER or clinic):\n\nSuggest a nearby hospital, ER, or clinic in that location\n\nUse natural wording like:\n\n\"A nearby medical facility in {{ $json.location }} is...\"\n\nor\n\n\"You may consider visiting a hospital or urgent care center near {{ $json.location }}.\"\n\nDo not invent exact addresses unless you are confident. It is acceptable to reference a well-known hospital or ER in the city.\n\n4️⃣ Match tone to CTAS urgency\nCTAS 1–2 (Emergency)\n\nUse calm but urgent language.\n\nExample:\n\n\"Your symptoms may require urgent medical attention. Please consider going to the nearest Emergency Room as soon as possible.\"\n\nCTAS 3 (Urgent care)\n\nEncourage visiting a clinic soon.\n\nExample:\n\n\"It would be best to visit a clinic or urgent care center for further evaluation.\"\n\nCTAS 4–5 (Lower urgency)\n\nReassure the user while still providing guidance.\n\nExample:\n\n\"Your symptoms appear to be lower urgency and may be manageable at home, but you can still visit a clinic or pharmacy if symptoms worsen.\"\n\n5️⃣ End with supportive guidance\n\nAlways finish with reassurance and safety advice.\n\nExamples:\n\n\"If your symptoms worsen or new symptoms appear, please seek medical care immediately.\"\n\n\"Take care, and don't hesitate to reach out if you need further help.\"\n\nExample Response\n\n\"I'm sorry you're experiencing these symptoms. Based on the information you shared, the triage system suggests that you should seek medical attention soon.\n\nBecause of the symptoms you described ({{ $('Code in JavaScript1').item.json.symptoms }}), it would be best to visit a clinic or urgent care center for further evaluation.\n\nSince you are in {{ $json.location }}, you may consider visiting a nearby hospital or urgent care clinic in that area.\n\nIf your symptoms worsen or new symptoms develop, please seek medical attention immediately.\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2432,
+        0
+      ],
+      "id": "1c6ad8ac-8f7d-4a84-ae11-178fad9ca9a1",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When chat message received').item.json.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2448,
+        208
+      ],
+      "id": "fc850c2b-79ae-48fb-a384-c196f15479d5",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}\n\nYou are a helpful medical triage assistant helping a user find appropriate healthcare services near them (always in Nova Scotia).\n\nThe text above contains:\n\nThe user’s symptoms{{ $('Code in JavaScript1').item.json.symptoms }}\n\nThe CTAS urgency level{{ $('HTTP Request').item.json.predicted_ctas }}\n\nThe medical advice{{ $('HTTP Request').item.json.advice }}\n\nThe user’s location{{ $('HTTP Request').item.json.location }}\n\nYour job is to interpret this information and guide the user to appropriate nearby medical facilities.\n\nInstructions\n\nUnderstand the situation\n\nBriefly explain what the user may be experiencing based on their symptoms and the advice provided.\n\nKeep the explanation simple and supportive.\n\nDetermine the appropriate type of care\nBased on the advice, decide what type of place the user should visit:\n\nEmergency Room / Hospital for urgent situations\n\nUrgent Care Clinic / Walk-in Clinic for moderate urgency\n\nPharmacy for low urgency or medication advice\n\nUse the user's location\nUse the location mentioned in the output to suggest nearby options. -> should be real locations\n\nProvide a list of nearby places\nSuggest 3–5 possible options the user can visit.\n\nFor each place include:\n\nName of the place\n\nType (Hospital / Clinic / Pharmacy)\n\nApproximate distance from the user\n\nA short note if relevant\n\nIdentify the closest option\nClearly mention which location is the closest.\n\nTone\n\nBe calm\n\nBe supportive\n\nAvoid sounding alarming unless CTAS is very urgent\n\nResponse Format\n\nStart with a short explanation:\n\nExample:\n\n\"I'm sorry you're experiencing these symptoms. Based on the triage result, it would be best for you to visit a clinic for further evaluation.\"\n\nThen suggest nearby places:\n\nExample:\n\n\"Here are some nearby healthcare options near your location:\"\n\nOption 1\nName: ___\nType: ___\nDistance: ___\n\nOption 2\nName: ___\nType: ___\nDistance: ___\n\nOption 3\nName: ___\nType: ___\nDistance: ___\n\nFinally conclude:\n\n\"The closest option appears to be [place name], which may be the fastest place for you to receive care.\"\n\nEnd with supportive advice:\n\n\"If your symptoms worsen, please seek medical attention immediately.\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2784,
+        0
+      ],
+      "id": "2a27b64e-7639-411d-8f85-3810ef2d0bb3",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When chat message received').item.json.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2800,
+        208
+      ],
+      "id": "e867de04-6cc0-42e9-9534-f2f0c5c309cd",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "0ef14fe7-a926-4d60-967e-cc5b481e2ec5",
+      "name": "Wait",
+      "webhookId": "f7342dcc-29b4-4a5d-a608-a85687fa73ea"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        288,
+        208
+      ],
+      "id": "f9ef8df4-a785-42c2-a283-3279e12056d6",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "sJQGkl4yRYnKdXL3",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2304,
+        208
+      ],
+      "id": "baec97e9-324e-4763-b92f-891f67f2f7e3",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "sJQGkl4yRYnKdXL3",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2656,
+        208
+      ],
+      "id": "d1a20bdd-e1a4-4de9-a46d-47c7067b3bc9",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "sJQGkl4yRYnKdXL3",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/predict",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        160
+      ],
+      "id": "ba676870-3516-49f2-a29b-dad3ccaf4e61",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/triage",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f48e0306-01ec-4ce2-982d-917b75f46cf8",
+      "name": "Webhook",
+      "webhookId": "b7444d13-2c5a-44e2-84d1-ddb6740a03e4"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3136,
+        0
+      ],
+      "id": "cd6145e3-6fc6-4bf8-b7a4-6917ab34a89e",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "54aa511b-1b93-40eb-b350-6ad3171bd295",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e014c38c3895c1877d0bf378c2a952fbeb90311ea99f8c8b8c974a95ef9d8aba"
+  },
+  "id": "ZHwVfoWVPjWfgBIf",
+  "tags": []
+}
